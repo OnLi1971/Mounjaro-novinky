@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mounjaro Novinky</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            margin-top: 50px;
+        }
+        .article-card {
+            background-color: #f9fafb;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+        .article-card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 10px;
+        }
+        .article-card p {
+            font-size: 1rem;
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .article-card a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+        }
+        .article-card a:hover {
+            text-decoration: underline;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-8 text-center">Nejnovější zprávy o Mounjaro</h1>
+
+        <div id="articles-container" class="grid gap-6">
+            <div id="loading-indicator" class="loader"></div>
+            <div id="error-message" class="hidden text-center text-red-600 text-lg font-semibold">
+                Nepodařilo se načíst články. Zkontrolujte prosím URL adresu Google Apps Scriptu a jeho nasazení (musí být přístupné "Kdokoli").
+            </div>
+            <!-- Articles will be loaded here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // **************************************************************************************************
+        // *** DŮLEŽITÉ: ZDE MUSÍTE VLOŽIT SKUTEČNOU, KOMPLETNÍ URL VAŠEHO PUBLIKOVANÉHO GOOGLE APPS SCRIPTU! ***
+        // *** Tato URL se získá po nasazení skriptu jako "Web app" s přístupem "Kdokoli".                 ***
+        // *** Příklad správné URL: https://script.google.com/macros/s/AKfycbz...něco.../exec            ***
+        // **************************************************************************************************
+        const GOOGLE_APPS_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxNmxJmKxkULdiWa9RMlzPFj9Vjy77GG8LzkYl6JMCO4_OyEUO2qCYu9GAT-BNGUuUB/exec"; 
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const articlesContainer = document.getElementById('articles-container');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+
+            loadingIndicator.style.display = 'block'; // Show loader
+            errorMessage.classList.add('hidden'); // Hide any previous error message
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP chyba: ${response.status} ${response.statusText}. Zkontrolujte, zda je Google Apps Script správně nasazen a přístupný.`);
+                }
+                
+                const articles = await response.json();
+
+                loadingIndicator.style.display = 'none'; // Hide loader
+
+                if (articles.length === 0) {
+                    articlesContainer.innerHTML = '<p class="text-center text-gray-600 text-lg">Zatím zde nejsou žádné články. Zkuste to prosím později, nebo zkontrolujte, zda váš Google Apps Script správně zpracovává a ukládá data do tabulky.</p>';
+                    return;
+                }
+
+                const uniqueUrls = new Set(); // Pro deduplikaci článků
+
+                articles.forEach(article => {
+                    // Normalizovat URL pro deduplikaci (např. odstranit koncové lomítka, parametry sledování)
+                    const normalizedUrl = article.url ? article.url.split('?')[0].replace(/\/+$/, '') : '';
+
+                    // Přeskočit článek, pokud je jeho normalizovaná URL již v sadě (duplikát)
+                    if (normalizedUrl && uniqueUrls.has(normalizedUrl)) {
+                        console.log(`Přeskakuji duplicitní článek (normalizovaná URL již existuje): ${normalizedUrl}`);
+                        return; // Přeskočit tento článek
+                    }
+                    if (normalizedUrl) {
+                        uniqueUrls.add(normalizedUrl); // Přidat normalizovanou URL do sady unikátních URL
+                    }
+
+
+                    const articleCard = document.createElement('div');
+                    articleCard.className = 'article-card';
+
+                    // Zajištění, že datum je platné pro formátování
+                    const dateObj = new Date(article.date);
+                    const date = isNaN(dateObj.getTime()) ? 'Neznámé datum' : dateObj.toLocaleDateString('cs-CZ', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    });
+
+                    let linkHtml = '';
+                    // Zkontrolovat, zda URL existuje a je platná
+                    if (article.url && typeof article.url === 'string' && article.url.startsWith('http')) {
+                        linkHtml = `
+                            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center">
+                                Přečíst celý článek
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </a>
+                        `;
+                        console.log(`Článek: "${article.subject.substring(0, 30)}..." - Zobrazuji odkaz na URL: ${article.url}`);
+                    } else {
+                        linkHtml = `<span class="text-gray-500 text-sm">URL článku není dostupná.</span>`;
+                        console.warn(`Článek: "${article.subject.substring(0, 30)}..." - Neplatná nebo chybějící URL: ${article.url}`);
+                    }
+
+                    articleCard.innerHTML = `
+                        <div class="text-sm text-gray-500 mb-2">${date} - ${article.source}</div>
+                        <h2>${article.subject}</h2>
+                        <p>${article.translatedSummary}</p>
+                        ${linkHtml}
+                    `;
+                    articlesContainer.appendChild(articleCard);
+                });
+
+            } catch (error) {
+                console.error('Chyba při načítání článků:', error);
+                loadingIndicator.style.display = 'none'; // Hide loader
+                errorMessage.classList.remove('hidden'); // Show error message
+                errorMessage.textContent = `Nepodařilo se načíst články: ${error.message}. Zkontrolujte prosím URL adresu Google Apps Scriptu a jeho nasazení (musí být přístupné "Kdokoli").`;
+            }
+        });
+    </script>
+</body>
+</html>
