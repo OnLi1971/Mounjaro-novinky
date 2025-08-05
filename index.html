@@ -78,6 +78,7 @@
         container.innerHTML = data.map(entry => `
           <div class="entry">
             <div class="date">📰 ${entry.date}</div>
+            <h3>${entry.title || "Bez nadpisu"}</h3>
             <div class="summary">${entry.summary}</div>
             <a class="link" href="${entry.url}" target="_blank">Přečíst celý článek</a>
           </div>
