@@ -49,6 +49,10 @@
     .link:hover {
       text-decoration: underline;
     }
+    .entry h3 {
+      margin: 0.5rem 0;
+      color: #222;
+    }
   </style>
 </head>
 <body>
@@ -61,8 +65,7 @@
   </div>
 
   <script>
-    // Zde můžeš upravit odkaz na data (např. z JSON nebo Sheets API)
-    const DATA_URL = "https://raw.githubusercontent.com/OnLi1971/Mounjaro-novinky/main/data.json";
+    const DATA_URL = "data.json";
 
     async function loadData() {
       const container = document.getElementById('content');
